@@ -3,7 +3,7 @@ import requests
 import tiktoken
 import numpy as np
 
-input_file_path = os.path.join(os.path.dirname(__file__), 'medium.txt')
+input_file_path = os.path.join(os.path.dirname(__file__), 'medium-clean.txt')
 with open(input_file_path, 'r') as f:
     data = f.read()
 n = len(data)

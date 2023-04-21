@@ -12,7 +12,7 @@ wandb_log = False # override via command line if you like
 wandb_project = 'nikhil-gpt'
 wandb_run_name = 'mini-gpt'
 
-dataset = 'medium'
+dataset = 'medium-clean'
 batch_size = 64
 block_size = 256 # context of up to 256 previous characters
 
