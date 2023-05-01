@@ -29,6 +29,8 @@ from torch.distributed import init_process_group, destroy_process_group
 
 from model import GPTConfig, GPT
 
+import matplotlib.pyplot as plt
+
 # -----------------------------------------------------------------------------
 # default config values designed to train a gpt2 (124M) on OpenWebText
 # I/O
@@ -76,6 +78,10 @@ compile = True # use PyTorch 2.0 to compile the model to be faster
 config_keys = [k for k,v in globals().items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
 exec(open('configurator.py').read()) # overrides from command line or config file
 config = {k: globals()[k] for k in config_keys} # will be useful for logging
+# -----------------------------------------------------------------------------
+iter_range = []
+train_losses = []
+val_losses = []
 # -----------------------------------------------------------------------------
 
 # various inits, derived attributes, I/O setup
@@ -242,7 +248,7 @@ local_iter_num = 0 # number of iterations in the lifetime of this process
 raw_model = model.module if ddp else model # unwrap DDP container if needed
 running_mfu = -1.0
 while True:
-
+    
     # determine and set the learning rate for this iteration
     lr = get_lr(iter_num) if decay_lr else learning_rate
     for param_group in optimizer.param_groups:
@@ -251,6 +257,9 @@ while True:
     # evaluate the loss on train/val sets and write checkpoints
     if iter_num % eval_interval == 0 and master_process:
         losses = estimate_loss()
+        iter_range.append(iter_num)
+        train_losses.append(losses['train'])
+        val_losses.append(losses['val'])
         print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
         if wandb_log:
             wandb.log({
@@ -320,3 +329,11 @@ while True:
 
 if ddp:
     destroy_process_group()
+
+plt.plot(iter_range, train_losses, '.-', label='Training Set Loss')
+plt.plot(iter_range, val_losses, '.-', label='Validation Set Loss')
+plt.xlabel('Iterations')
+plt.ylabel('Loss')
+plt.title('Model Losses During Training')
+plt.legend()
+plt.savefig('plot.png');
